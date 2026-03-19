@@ -10,21 +10,31 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-java@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Java 17
+      uses: actions/setup-java@v4
       with:
         distribution: temurin
-        java-version: 17 # Actualizado a Java 17 para mejor soporte de Gradle en 2026
+        java-version: 17
         cache: gradle
+
     - name: Prepare and Build
       run: |
         chmod +x ./gradlew
-        # Modifica la descripción y el header del juego
+        # Modifica la descripción y el header del juego dinámicamente
         sed -i 's/moduleDescription = "/moduleDescription = "(${{ github.event.inputs.package_name }}) /g' module.gradle
         sed -i "s/com.game.packagename/${{ github.event.inputs.package_name }}/g" module/src/main/cpp/game.h
         ./gradlew :module:assembleRelease
+
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
         name: zygisk-il2cppdumper-${{ github.event.inputs.package_name }}
-        path: out/magisk_module.zip # Verifica si tu proyecto genera el zip en 'out/' o 'module/build/outputs/magisk/'
+        # Esta ruta busca el .zip en cualquier subcarpeta generada por Gradle
+        path: |
+          out/*.zip
+          module/build/outputs/magisk/*.zip
+          **/*.zip
+        if-no-files-found: error
